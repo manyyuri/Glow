@@ -184,16 +184,36 @@ export function buildTodayStatus(state: CareState): TodayStatus {
   };
 }
 
-/** 组装给 agent 看的今日状态文本。 */
+/** 当前连续坚持最长的每日项（阶段记忆的锚点）。 */
+export function topDailyStreak(
+  state: CareState,
+): { id: string; name: string; streak: number } | undefined {
+  let best: { id: string; name: string; streak: number } | undefined;
+  for (const r of DAILY_RITUALS) {
+    const s = computeDailyStreak(state.history, state.doneToday, r.id, state.todayKey);
+    if (s > 0 && (!best || s > best.streak)) best = { id: r.id, name: r.name, streak: s };
+  }
+  return best;
+}
+
+/**
+ * 组装给 agent 看的今日状态文本。
+ * 原则：不是「10/10 的账本」，是「从 1 到 10 的路」——先讲最稳的连续项（阶段记忆），
+ * 未完成项用「按节奏慢慢来」轻轻带过，绝不用「还剩 X 项」的催债口吻。
+ */
 export function formatTodayStatus(state: CareState): string {
   const s = buildTodayStatus(state);
   const lines: string[] = [];
   lines.push(`📅 今天是 ${s.date} 星期${s.weekday}`);
+  const top = topDailyStreak(state);
+  if (top) {
+    lines.push(`🔥 你的「${top.name}」已连续坚持 ${top.streak} 天，节奏稳住了`);
+  }
   if (s.dailyDone.length > 0) {
-    lines.push(`✅ 今日已完成：${namesOf(s.dailyDone)}`);
+    lines.push(`✅ 今天已完成：${namesOf(s.dailyDone)}`);
   }
   if (s.dailyTodo.length > 0) {
-    lines.push(`⬜ 今日未完成（剩 ${s.dailyTodo.length} 项）：${namesOf(s.dailyTodo)}`);
+    lines.push(`🌱 今天还没做（按自己的节奏，慢慢来）：${namesOf(s.dailyTodo)}`);
   } else {
     lines.push('🎉 今日 10 项每日护理已全部完成！');
   }
@@ -201,10 +221,48 @@ export function formatTodayStatus(state: CareState): string {
     lines.push(`✅ 本周周项已完成：${namesOf(s.weeklyDone)}`);
   }
   if (s.weeklyTodo.length > 0) {
-    lines.push(`⬜ 本周周项未完成（剩 ${s.weeklyTodo.length} 项）：${namesOf(s.weeklyTodo)}`);
+    lines.push(`🌱 本周周项还没做（一周时间，不急）：${namesOf(s.weeklyTodo)}`);
   }
   if (s.lastSkin) {
     lines.push(`🔍 最近一次皮肤日志（${s.lastSkin.date}）：${s.lastSkin.state}`);
+  }
+  return lines.join('\n');
+}
+
+// ---------- 阶段记忆（老板记得你） ----------
+
+export interface CareMemory {
+  /** 连续坚持最长的每日项 */
+  topDaily: { name: string; streak: number } | undefined;
+  /** 最近一条心得/日记 */
+  lastNote: Note | undefined;
+  /** 最近一次皮肤日志 */
+  lastSkin: SkinEntry | undefined;
+}
+
+/** 从状态里提炼「店老板记得你」的记忆锚点（无副作用）。 */
+export function buildCareMemory(state: CareState): CareMemory {
+  const top = topDailyStreak(state);
+  return {
+    topDaily: top ? { name: top.name, streak: top.streak } : undefined,
+    lastNote: state.notes[state.notes.length - 1],
+    lastSkin: state.skinLog[state.skinLog.length - 1],
+  };
+}
+
+/** 渲染「老板记得你」文本块（agent 与前端卡片共用）。 */
+export function formatCareMemory(m: CareMemory): string {
+  const lines: string[] = ['老板记得你'];
+  if (m.topDaily) {
+    lines.push(`· 最稳的一项：「${m.topDaily.name}」已连续坚持 ${m.topDaily.streak} 天，节奏稳住了`);
+  } else {
+    lines.push('· 还没有连续坚持的记录——从最舒服的一件小事开始就好');
+  }
+  if (m.lastSkin) {
+    lines.push(`· 最近一次皮肤（${m.lastSkin.date}）：${m.lastSkin.state}`);
+  }
+  if (m.lastNote) {
+    lines.push(`· 她最近说过：「${m.lastNote.text}」`);
   }
   return lines.join('\n');
 }

@@ -18,6 +18,8 @@ import {
   computeDailyStreak,
   computeWeeklyStreak,
   buildWeeklyReview,
+  buildCareMemory,
+  formatCareMemory,
 } from '../ritual-logic';
 import morningSkill from '../skills/morning-ritual/SKILL.md';
 import eveningSkill from '../skills/evening-ritual/SKILL.md';
@@ -179,6 +181,13 @@ export function Shiguang() {
     const status = formatTodayStatus(effective);
     const body = profileText ? `${status}\n\n【我的护理档案】\n${profileText}` : status;
     append({ kind: 'signal', type: 'intake', body });
+    // 「老板记得你」：阶段记忆锚点，agent 与前端卡片（tagName=salon-memory 的 system 信号）共用。
+    append({
+      kind: 'signal',
+      type: 'salon-memory',
+      tagName: 'salon-memory',
+      body: formatCareMemory(buildCareMemory(effective)),
+    });
   });
 
   // ---- 工具 1：打卡 ----
@@ -325,11 +334,15 @@ export function Shiguang() {
 - 你是用户精致生活里的陪伴者，不是医生。皮肤/身体异常要建议看医生，绝不编造医疗结论。
 
 # 每轮对话前
-- 系统会在每条新消息前注入一份「今日状态」+「我的护理档案」。先读它，开场先摆出来：今天星期几、已完成/未完成哪些、本周周项进度、最近皮肤日志一句话。别复述整段，挑重点、说人话。
-- 主动性强一点：新一轮对话先报「今天还剩 X、Y、Z 没做」，再回应用户的话。
+- 系统会在每条新消息前注入「今日状态」「我的护理档案」和「老板记得你」。开场要像熟悉你的店老板，不要像考勤机：
+  1. 先接一句「记得你」的话——最稳的连续项、最近皮肤日志、她最近说过的话里挑最有温度的一句（别复述整段）。
+  2. 再温柔带过今天的进度：完成了什么、还剩什么。未完成项用「按自己的节奏慢慢来」轻轻带过，绝不用「还剩 X 项」的账本口吻。
+  3. 最后认真回应她这轮说的话。
+- 护理是一条「从 1 到 10 的路」，不是「10/10 的考试」：她今天只做了一件，就先为她做的那一件真诚开心，绝口不提「还欠九件」。
+- 主动但不催：新对话可以主动提一件最值得继续的事（比如正在坚持的那项），点到为止，不列全部未完成清单。
 
 # 行为约定
-1. 用户报告完成某护理（「洗完脸了」「泡完脚了」「洗脸护肤做完了」等口语）→ 调 complete_ritual 打卡；随后给一句贴合该项目、真诚不敷衍的鼓励（可参考返回里的 tip 再润色），并提示下一件未完成的事。
+1. 用户报告完成某护理（「洗完脸了」「泡完脚了」「洗脸护肤做完了」等口语）→ 调 complete_ritual 打卡；随后给一句贴合该项目、真诚不敷衍的鼓励（可参考返回里的 tip 再润色），并轻轻提一件接下来最值得做的（点到为止，不列全部清单）。
 2. 用户问「怎么做 / 为什么 / 要注意什么」（如"精油刮痧怎么做""怎么泡脚"）→ 激活对应 skill（morning-ritual / evening-ritual / hair-care / gua-sha / skin-analysis / weekly-cleaning），按里面给的具体方法、参数、禁忌回答；回答要具体可执行，不空谈。
 3. 用户描述皮肤状态（或发照片）→ 激活 skin-analysis，引导用户按观察维度逐项描述，调 log_skin_state 记录，结合最近皮肤日志给趋势判断（今天和前几天比是变好还是变差）和 1–3 条可执行建议；异常持续提醒就医。
 4. 用户要复盘（「这周怎么样」「复盘一下」）→ 调 weekly_review，用返回的统计给出小结与下周建议，语气温和不施压。

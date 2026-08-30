@@ -50,6 +50,21 @@ function chatMessages(messages: FlueConversationMessage[]) {
   return messages.filter((m) => m.role === 'user' || m.role === 'assistant');
 }
 
+/** 从 system 信号里读「老板记得你」文本（tagName = salon-memory）。 */
+function salonMemory(messages: FlueConversationMessage[]): string | null {
+  for (const msg of messages) {
+    if (msg.role !== 'system') continue;
+    if (msg.signal?.tagName !== 'salon-memory') continue;
+    const text = msg.parts
+      .filter((p) => p.type === 'text')
+      .map((p) => (p as any).text as string)
+      .join('')
+      .trim();
+    if (text) return text;
+  }
+  return null;
+}
+
 function RitualRow({ r, done, disabled, onCheck }: { r: Ritual; done: boolean; disabled: boolean; onCheck: () => void }) {
   return (
     <li className={`ritual-row ${done ? 'done' : ''}`}>
@@ -133,6 +148,7 @@ function App() {
   }, [messages, status]);
 
   const visible = useMemo(() => chatMessages(messages), [messages]);
+  const memory = useMemo(() => salonMemory(messages), [messages]);
 
   function doSend(text: string) {
     const value = text.trim();
@@ -184,6 +200,13 @@ function App() {
       <main className="layout">
         {/* 左栏 · 今日护理清单 */}
         <aside className="panel checklist-panel">
+          {memory ? (
+            <section className="memory">
+              <h2>🧠 老板记得你</h2>
+              <pre className="memory-body">{memory.replace(/^老板记得你\n?/, '')}</pre>
+            </section>
+          ) : null}
+
           <section>
             <h2>🗓️ 今日护理</h2>
             <ul className="ritual-list">
@@ -379,6 +402,10 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
   padding: 5px 12px; font-size: 12px; min-width: 46px;
 }
 .ritual-row.done .ritual-check { background: var(--ok); }
+
+.memory { background: var(--accent-soft); border: 1px dashed var(--accent); border-radius: 14px; padding: 12px 14px; }
+.memory h2 { margin: 0 0 8px; font-size: 15px; }
+.memory-body { margin: 0; white-space: pre-wrap; font-family: inherit; font-size: 13px; line-height: 1.7; color: var(--ink); }
 
 .quick h2 { margin-top: 4px; }
 .quick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
