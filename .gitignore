@@ -1,0 +1,20 @@
+# 依赖与构建产物
+node_modules/
+dist/
+
+# 密钥 —— 永不提交
+.env
+.env.local
+
+# 运行时数据与持久化数据库
+data/
+*.db
+*.db-wal
+*.db-shm
+
+# 用户日记（agent 写入，可翻看，不入库）
+workspace/journal.md
+
+# 系统文件
+.DS_Store
+*.log

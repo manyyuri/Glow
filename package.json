@@ -1,0 +1,36 @@
+{
+  "name": "shiguang",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "拾光 · 家庭美容院（Glow）— flue agent 驱动的家庭护理陪伴",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "start": "node --env-file=.env dist/server.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "run": "flue run src/agents/shiguang.ts"
+  },
+  "dependencies": {
+    "@earendil-works/pi-ai": "0.83.0",
+    "@flue/react": "2.0.3",
+    "@flue/runtime": "2.0.3",
+    "@flue/sdk": "2.0.3",
+    "hono": "^4.13.5",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "valibot": "^1.4.2"
+  },
+  "devDependencies": {
+    "@flue/cli": "2.0.3",
+    "@flue/vite": "2.0.3",
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "typescript": "^5.9.0",
+    "vite": "^8.2.2",
+    "vitest": "^4.1.11"
+  }
+}
